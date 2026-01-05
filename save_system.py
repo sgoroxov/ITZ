@@ -1,15 +1,20 @@
 """
-save_system.py
-
 модуль отвечает за сохранение и загрузку
 прогресса игрока через систему артефактов
 
-в сохранении хранятся:
-    список идентификаторов полученных артефактов
+основная идея хранения прогресса:
+    — у каждого пользователя свой набор артефактов
+    — артефакты сохраняются по имени аккаунта
+    — при входе они подгружаются и активируются
+
+функции модуля:
+    load_player_progress   — загрузить артефакты текущего игрока
+    save_player_artifacts  — сохранить обновлённый список артефактов
 """
 
+
+from auth import get_current_username
 from artifact_storage import (
-    load_artifacts_ids,
     save_artifacts_ids,
     load_player_artifacts_objects
 )
@@ -17,13 +22,16 @@ from artifact_storage import (
 
 def load_player_progress():
     """
-        загружает артефакты игрока из сохранения
-
-        returns:
-            list — список объектов артефактов игрока
+    загружает прогресс игрока (его артефакты)
+    теперь — персонально для текущего пользователя
     """
 
-    return load_player_artifacts_objects()
+    username = get_current_username()
+
+    if not username:
+        return []
+
+    return load_player_artifacts_objects(username)
 
 
 def save_player_artifacts(artifacts):
@@ -36,8 +44,11 @@ def save_player_artifacts(artifacts):
         returns:
             none — идентификаторы записываются в файл
     """
+    username = get_current_username()
+    if not username:
+        return
 
     ids = [a.id for a in artifacts]
-    save_artifacts_ids(ids)
+    save_artifacts_ids(username, ids)
 
     print("\nпрогресс сохранён — артефакты записаны")

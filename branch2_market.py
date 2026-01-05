@@ -2,31 +2,45 @@
 ветка 2 —
     экономическая ветка перепродажи автомобилей
 
-основная идея ветки:
-    - покупка автомобиля замораживает бюджет
+модель ветки:
+    - покупка автомобиля замораживает часть бюджета
     - сделка может зависнуть на несколько ходов
-    - игрок решает — ждать или выходить раньше
-    - параллельно действует соперник на рынке
+    - игрок принимает решение: ждать, продавать в ноль или срочно сливать
+    - параллельно развивается линия соперника на рынке
+    - результат сделки зависит от состояния рынка и силы конкурента
+
+игровые сущности:
+    Rival — соперник-перекуп с собственным бюджетом и стилем игры
+    игрок — управляет бюджетом и принятием решений по сделке
+
+достижения (артефакты):
+    - первая успешная сделка
+    - 10 завершённых сделок
+    - крупная прибыль
+    - рискованная досрочная продажа
+    - долгий проект / затянувшаяся сделка
 
 унифицированные функции:
-    generate_rival   — создать соперника
-    show_hint        — вывести фразу соперника
-    calc_profit      — рассчитать прибыль
-    apply_profit     — применить результат
-    play_branch2     — запустить ветку
+    generate_rival   — создать соперника и его параметры
+    show_hint        — вывести психологическое давление соперника
+    calc_profit      — рассчитать прибыль сделки
+    apply_profit     — применить финансовый результат
+    finalize_rival   — завершить сделку соперника
+    play_branch2     — основной игровой цикл ветки
 """
+
 
 import random
 from player import Rival
 from player import check_force_exit
+from auth import get_current_username
 from artifacts_hooks import (
     try_first_deal,
     try_ten_deals,
-    try_big_profit
+    try_big_profit,
+    try_long_project,
+    try_risky_abort,
 )
-from artifact_storage import give_artifact
-from artifacts import ARTIFACTS
-
 
 
 RIVAL_HINTS = {
@@ -160,6 +174,8 @@ def play_branch2(player):
 
     print("\n=== Ветка 2 — Перекупские сделки на рынке ===\n")
 
+    username = get_current_username()
+
     player.budget = 150_000
     player.win_target = 350_000
 
@@ -167,7 +183,7 @@ def play_branch2(player):
 
     while True:
 
-        print("\n--- новый поиск автомобиля ---")
+        print("\n--- новый поиск автомобиля")
 
         # качество машины
         car_quality = random.randint(0, 4)
@@ -254,7 +270,7 @@ def play_branch2(player):
 
             for step in range(freeze_turns):
 
-                print(f"\n--- ход сделки {step + 1} ---")
+                print(f"\n--- ход сделки {step + 1}")
 
                 show_hint(rival)
 
@@ -279,11 +295,15 @@ def play_branch2(player):
                     loss = random.randint(5000, 20000)
                     print("срочная продажа в минус на", loss)
                     player.change_budget(base_price - loss)
+                    try_risky_abort(username)
                     break
 
                 rival.progress_deal()
 
-            # --- сделка завершилась — считаем прибыль ---
+            # сделка завершилась — считаем прибыль
+
+            if freeze_turns >= 3:
+                try_long_project(player, username)
 
             profit = calc_profit(car_quality)
 
@@ -300,16 +320,9 @@ def play_branch2(player):
 
             player.completed_deals.append(profit)
 
-            try_first_deal(player)
-            try_ten_deals(player)
-            try_big_profit(player, profit)
-
-            if profit > 0:
-                give_artifact("first_deal")
-            if profit >= 100000:
-                give_artifact("big_profit")
-            if player.stats.total_deals >= 10:
-                give_artifact("ten_deals")
+            try_first_deal(player, username)
+            try_ten_deals(player, username)
+            try_big_profit(player, username)
 
             if check_force_exit():
                 print("\nпринудительный выход из ветки…")
@@ -320,3 +333,7 @@ def play_branch2(player):
         print("-- — выйти из ветки")
 
         cmd = input("действие: ").strip()
+
+        if cmd == "--":
+            print("\nвыход из ветки 2")
+            return

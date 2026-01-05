@@ -2,24 +2,45 @@
 ветка 1 —
     переговорная сцена с перекупом
 
-основная идея ветки:
-    - игрок выбирает стратегию торга
-    - соперник реагирует стилем поведения
-    - исход рассчитывается числовой моделью
+модель ветки:
+    - игрок выбирает стратегию поведения в переговорах
+    - соперник реагирует в зависимости от стиля общения
+    - итог сделки определяется числовой моделью взаимодействия
+    - результат может дать прибыль, ноль или убыток
 
-унифицированные названия функций:
-    generate_rival  — создать соперника
-    choose_action   — выбрать действие игрока
-    calc_outcome    — рассчитать исход
-    apply_outcome   — применить результат
-    play_branch1    — запустить ветку
+игровые сущности:
+    Rival — соперник-продавец с собственным стилем торга
+    игрок — принимает решения и управляет своим бюджетом
+
+достижения (артефакты):
+    - первая успешная сделка
+    - 10 завершённых сделок
+    - крупная прибыль
+    - редкое удачное стечение обстоятельств
+
+таблицы логики:
+    ACTION_TEXT        — стратегии игрока
+    RIVAL_STYLE_TEXT   — поведение соперника
+    OUTCOME_TEXT       — текстовое описание исходов
+    OUTCOME_VALUES     — числовые диапазоны прибыли / убытка
+
+унифицированные функции:
+    generate_rival   — создать соперника переговоров
+    choose_action    — запросить стратегию игрока
+    calc_outcome     — рассчитать исход встречи
+    apply_outcome    — применить финансовый результат
+    play_branch1     — основной игровой цикл ветки
 """
+
 
 import random
 from player import Rival
 from player import check_force_exit
-from artifact_storage import give_artifact
-from artifacts import ARTIFACTS
+from auth import get_current_username
+from artifacts_hooks import (
+    try_first_deal,
+    try_ten_deals,
+)
 
 
 # коды действий игрока
@@ -87,7 +108,6 @@ def generate_rival():
     return rival
 
 
-
 def choose_action():
     """
     выводит варианты действий и возвращает выбор игрока
@@ -147,6 +167,8 @@ def apply_outcome(player, outcome_code):
     применяет финансовый результат к бюджету игрока
     """
 
+    username = get_current_username()
+
     if outcome_code == 0:
         print("\nСделка сорвалась — денег не заработано")
         return
@@ -158,6 +180,13 @@ def apply_outcome(player, outcome_code):
     print("Изменение бюджета:", amount)
 
     player.change_budget(amount)
+
+    player.completed_deals.append(amount)
+
+    # первая успешная сделка
+    try_first_deal(player, username)
+    # счётчик завершённых сделок
+    try_ten_deals(player, username)
 
 
 def play_branch1(player):

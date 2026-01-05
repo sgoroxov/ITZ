@@ -1,7 +1,43 @@
+"""
+модуль auth (система аутентификации и управления пользователями игры)
+
+основные задачи модуля:
+    - хранение и загрузка списка зарегистрированных пользователей
+    - регистрация новых игроков
+    - проверка логина и пароля при входе
+    - управление текущей сессией (active user)
+    - активация сохранённых артефактов игрока при авторизации
+
+структура работы:
+    1) при старте гарантируется существование каталога storage/
+       и файла storage/users.txt
+
+    2) пользователь может:
+        - зарегистрироваться (register_user)
+        - выполнить вход (login_user)
+
+    3) после успешного входа:
+        - имя игрока сохраняется как текущий пользователь сессии
+        - загружаются его персональные артефакты
+        - выполняется их активация в рамках текущей игры
+
+вспомогательные функции:
+    set_current_username / get_current_username —
+        управление текущим активным пользователем
+
+    load_users / save_user —
+        работа с файлом хранения пользователей
+
+совместимость:
+    функция get_or_create_user сохранена для старых версий проекта
+    и выполняет регистрацию или вход в зависимости от наличия игрока
+"""
+
+
 import os
 
 from pathlib import Path
-from artifacts import activate_artifacts_on_login
+from artifacts import show_artifacts_on_login
 from artifact_storage import load_player_artifacts_objects
 
 
@@ -56,6 +92,7 @@ def validate_credentials(login, password):
         return False
 
     return True
+
 
 # текущий пользователь с активной сессией
 CURRENT_USER = None
@@ -200,11 +237,12 @@ def login_user(login, password):
 
     set_current_username(login)
 
-    artifacts = load_player_artifacts_objects()
+    artifacts = load_player_artifacts_objects(login)
 
     if artifacts:
         print("\nактивация сохранённых артефактов...")
-        activate_artifacts_on_login(artifacts)
+        show_artifacts_on_login(artifacts)
+
     else:
         print("\nу игрока пока нет сохранённых артефактов")
 

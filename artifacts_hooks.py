@@ -1,16 +1,33 @@
 """
-Игровые триггеры выдачи артефактов
+модуль aryefacts_hooks (триггеры выдачи игровых артефактов (достижений))
 
-Данный модуль НЕ содержит логики игры,
-а только реагирует на события,
-которые вызываются из сюжетных веток.
+назначение:
+    — модуль не содержит основной игровой логики
+    — функции вызываются из сюжетных веток
+    — каждая функция реагирует на конкретное игровое событие
+    — при выполнении условия выдаётся артефакт текущему игроку
+
+основные правила:
+    — проверки не изменяют игровое состояние
+    — функции не влияют на баланс и исход событий
+    — только фиксируют факт достижения прогресса
+
+интерфейс:
+    try_first_deal(player, username)
+    try_ten_deals(player, username)
+    try_big_profit(amount, username)
+    try_long_project(deal, username)
+    try_risky_abort(username)
+    try_lucky_event(username)
+
+связанные модули:
+    artifact_storage — хранение и загрузка артефактов
+    artifacts        — описание артефактов
 """
 
+
 from artifact_storage import give_artifact
-from artifacts import ARTIFACTS
 
-
-# ============ БАЗОВЫЕ ДОСТИЖЕНИЯ ============
 
 def try_first_deal(player, username):
     """
@@ -36,8 +53,6 @@ def try_big_profit(amount, username):
         give_artifact(username, "big_profit")
 
 
-# ============ ВЕТКА 3 — ДОЛГИЕ ПРОЕКТЫ ============
-
 def try_long_project(deal, username):
     """
     Выдаётся за успешное завершение долгого проекта (тип 3)
@@ -56,6 +71,5 @@ def try_risky_abort(username):
 def try_lucky_event(username):
     """
     Сработало редкое положительное событие
-    (ускорение проекта / рост прибыли)
     """
     give_artifact(username, "lucky_event")

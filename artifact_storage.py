@@ -1,20 +1,33 @@
 """
-Система хранения артефактов игрока
+Модуль frtefacts_storage (хранения и выдачи артефактов игрока)
 
-ВНИМАНИЕ:
-Артефакты являются ПЕРСОНАЛЬНЫМИ
-и сохраняются отдельно для каждого пользователя.
+Назначение:
+    — обеспечивает персональное хранилище достижений
+    — каждая учётная запись имеет собственный набор артефактов
+    — артефакты сохраняются между сессиями игры
 
-Формат хранения:
+Основные возможности:
+    • сохранение ID полученных артефактов
+    • загрузка списка артефактов игрока
+    • выдача нового артефакта (без повторов)
+    • восстановление объектов Artifact по ID
 
+Принцип хранения:
     storage/artifacts_<username>.json
 
-Хранилище содержит только список ID,
-а объекты артефактов восстанавливаются через каталог ARTIFACTS.
+Файл содержит только список полученных ID.
+Объекты артефактов восстанавливаются через каталог ARTIFACTS.
+
+Используется в:
+    — системе достижений
+    — игровых ветках
+    — загрузке прогресса игрока
 """
+
 
 import os
 import json
+from json import JSONDecodeError
 
 from artifacts import get_artifact_by_id
 
@@ -38,8 +51,7 @@ def get_user_file(username):
     return os.path.join(STORAGE_DIR, f"artifacts_{username}.json")
 
 
-# ============ ЗАГРУЗКА ============
-
+# ЗАГРУЗКА
 def load_artifacts_ids(username):
     """
     Загружает список ID артефактов пользователя
@@ -60,12 +72,11 @@ def load_artifacts_ids(username):
 
         return data if isinstance(data, list) else []
 
-    except Exception:
+    except (OSError, JSONDecodeError):
         return []
 
 
-# ============ СОХРАНЕНИЕ ============
-
+# СОХРАНЕНИЕ
 def save_artifacts_ids(username, ids):
     """
     Перезаписывает файл списка артефактов пользователя
@@ -79,8 +90,7 @@ def save_artifacts_ids(username, ids):
         json.dump(ids, f, ensure_ascii=False, indent=4)
 
 
-# ============ ВЫДАЧА АРТЕФАКТА ============
-
+# ВЫДАЧА АРТЕФАКТА
 def give_artifact(username, artifact_id):
     """
     Выдаёт артефакт конкретному игроку,
@@ -111,8 +121,7 @@ def give_artifact(username, artifact_id):
     return True
 
 
-# ============ ВОССТАНОВЛЕНИЕ ОБЪЕКТОВ ============
-
+# ВОССТАНОВЛЕНИЕ ОБЪЕКТОВ
 def load_player_artifacts_objects(username):
     """
     Загружает артефакты игрока как ОБЪЕКТЫ,
@@ -130,17 +139,3 @@ def load_player_artifacts_objects(username):
             result.append(art)
 
     return result
-
-def grant_artifact(username, artifact):
-    """
-    КОСТЫЛЬ (не успеваю по времени грамотно завершить)
-    теперь система хранения — по ID и на пользователя.
-
-    Данная функция принимает объект артефакта
-    и выполняет корректную выдачу.
-    """
-
-    if not artifact:
-        return False
-
-    return give_artifact(username, artifact.id)

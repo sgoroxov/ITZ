@@ -1,24 +1,52 @@
 """
 ветка 3 —
-    долгие проекты / свапы / восстановление
+    инвестиционный портфель / долгие проекты / свапы
 
-модель:
-    - проекты имеют длительность (freeze_turns)
-    - деньги замораживаются
-    - возможны редкие события
-    - соперник также ведет проекты и рискует
+основная идея ветки:
+    - игрок ведёт несколько долгих проектов одновременно
+    - деньги замораживаются на время работ (freeze_turns)
+    - каждый проект может дать бонус / задержку
+    - соперник также выполняет проекты параллельно
+    - рынок играет через редкие события
+
+игровая модель:
+    - проекты имеют тип, стоимость и длительность сборки
+    - прибыль зависит от диапазона profit + бонусов события
+    - завершённые проекты автоматически продаются
+    - игрок может досрочно выйти из проекта с убытком
+    - в портфеле можно запускать несколько машин
+
+интеграция достижений:
+    — first_deal         — первая успешная сделка
+    — ten_deals          — 10 завершённых сделок
+    — big_profit         — прибыль выше 100000 ₽
+    — long_project       — завершён долгий проект (тип 3)
+    — risky_abort        — досрочная продажа проекта
+    — lucky_event        — сработало редкое позитивное событие
+
+унифицированные сущности и функции:
+    create_rival           — создание соперника ветки
+    roll_event             — расчёт редких событий проекта
+    advance_turn           — продвижение времени на один ход
+    finish_ready_projects  — завершение готовых проектов
+    start_project          — запуск нового проекта
+    abandon_project        — досрочная продажа проекта
+    play_branch3           — основной цикл ветки
 """
+
 
 import random
 from player import Deal, Rival, attach_portfolio
 from player import check_force_exit
-from artifacts_hooks import try_long_project
-from artifacts import ARTIFACTS
-from artifact_storage import grant_artifact
-
-
-
-
+from auth import get_current_username
+from artifacts_hooks import (
+    try_first_deal,
+    try_ten_deals,
+    try_big_profit,
+    try_long_project,
+    try_risky_abort,
+    try_lucky_event
+)
 
 PROJECT_TYPES = {
     1: {
@@ -69,7 +97,7 @@ def create_rival():
 
 
 # СЛУЧАЙНЫЕ СОБЫТИЯ
-def roll_event(deal):
+def roll_event(deal, username):
     """
     редкие события проекта
     """
@@ -84,7 +112,7 @@ def roll_event(deal):
         print("\n[редкое событие] нашёлся коллекционер!")
         print("проект ускорен, потенциальная прибыль выросла")
 
-        grant_artifact(deal.owner, ARTIFACTS["lucky_event"])
+        try_lucky_event(username)
 
         return "boost"
 
@@ -137,15 +165,25 @@ def finish_ready_projects(entity, is_rival):
         # начисляем прибыль
         entity.change_budget(profit)
 
-        if try_long_project(deal):
-            grant_artifact(entity, ARTIFACTS["long_project"])
-
         who = "соперника" if is_rival else "игрока"
 
         print(f"\n[проект завершён — {who}]")
         print("машина подготовлена и продана")
         print("результат сделки:", profit)
         print("текущий бюджет:", entity.budget)
+
+        if not is_rival:
+            username = get_current_username()
+
+            # первая сделка / 10 сделок
+            try_first_deal(entity, username)
+            try_ten_deals(entity, username)
+
+            # долгий проект
+            try_long_project(deal, username)
+
+            # крупная прибыль
+            try_big_profit(profit, username)
 
 
 # СОЗДАНИЕ ПРОЕКТА
@@ -172,7 +210,8 @@ def start_project(player, project_type):
 
     deal.owner = player
 
-    roll_event(deal)
+    username = get_current_username()
+    roll_event(deal, username)
 
     player.portfolio.add(deal)
 
@@ -201,10 +240,11 @@ def abandon_project(player):
     print("\nпроект продан на стадии сборки")
     print("убыток:", loss)
 
-    grant_artifact(player, ARTIFACTS["risky_abort"])
-
     player.change_budget(-loss)
     player.portfolio.remove(deal)
+
+    username = get_current_username()
+    try_risky_abort(username)
 
 
 # ОСНОВНАЯ ФУНКЦИЯ ВЕТКИ
@@ -290,4 +330,3 @@ def play_branch3(player):
         if input("действие: ").strip() == "--":
             print("\nвыход из ветки 3…")
             return
-

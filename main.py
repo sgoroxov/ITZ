@@ -1,15 +1,25 @@
 """
-main.py
-
 главный модуль игры
 
-реализует:
-    - запуск программы
-    - авторизацию / регистрацию игрока
-    - создание объекта игрока
-    - выбор игровой ветки
-    - запуск игровой логики
+предназначение файла:
+    - управляет запуском приложения
+    - реализует цикл авторизации / регистрации
+    - создаёт объект игрока и загружает его артефакты
+    - предоставляет меню выбора сюжетных веток
+    - запускает соответствующую игровую логику
+
+основные функции модуля:
+    auth_cycle()          — меню входа и регистрации
+    start_game_mode()     — выбор режима начала игры
+    game_loop()           — основной игровой цикл
+    main()                — точка входа в программу
+
+роль в проекте:
+    служит центральным координатором,
+    объединяет систему пользователей, сохранения прогресса
+    и игровые сюжетные ветки в единую структуру
 """
+
 
 from player import Player
 from auth import register_user, login_user
@@ -17,8 +27,7 @@ from branch1_basic import play_branch1
 from branch2_market import play_branch2
 from branch3_portfolio import play_branch3
 from save_system import load_player_progress
-from artifacts import activate_artifacts_on_login
-
+from artifacts import show_artifacts_on_login
 
 
 def login_menu():
@@ -119,13 +128,15 @@ def start_game_mode(player):
             print("\nсохранённых артефактов нет")
             return
 
+        player.artifacts = artifacts
+
         print("\nзагружены артефакты игрока:")
 
         for a in artifacts:
             print("-", a.name, "(+", a.power, ")")
 
         # активация эффектов при входе в игру
-        activate_artifacts_on_login(artifacts)
+        show_artifacts_on_login(artifacts)
 
     else:
         print("\nигра начата без артефактов")
@@ -171,6 +182,7 @@ def game_loop(player):
         if again != "1":
             print("\nвыход в главное меню\n")
             break
+
 
 def main():
     """
