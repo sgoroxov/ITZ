@@ -36,7 +36,7 @@
 
 
 import random
-from player import Deal, Rival, attach_portfolio
+from player import Deal, Rival, attach_portfolio, safe_int
 from player import check_force_exit
 from auth import get_current_username
 from artifacts_hooks import (
@@ -232,7 +232,18 @@ def abandon_project(player):
         info = PROJECT_TYPES[d.type]
         print(f"{i+1} — {info['name']} (ходов осталось: {d.freeze_turns})")
 
-    idx = int(input("номер проекта: ")) - 1
+    idx = safe_int("номер проекта: ")
+
+    if idx is None:
+        print("операция отменена")
+        return
+
+    idx -= 1
+
+    if idx < 0 or idx >= len(player.portfolio.deals):
+        print("такого проекта нет")
+        return
+
     deal = player.portfolio.deals[idx]
 
     loss = random.randint(8000, 20000)
@@ -305,7 +316,12 @@ def play_branch3(player):
             print("2 — восстановление")
             print("3 — крупная сборка / свап")
 
-            p = int(input("тип: "))
+            p = safe_int("тип: ")
+
+            if p is None or p not in (1, 2, 3):
+                print("некорректный выбор проекта")
+                continue
+
             start_project(player, p)
             continue
 

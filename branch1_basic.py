@@ -34,7 +34,7 @@
 
 
 import random
-from player import Rival
+from player import Rival, safe_int
 from player import check_force_exit
 from auth import get_current_username
 from artifacts_hooks import (
@@ -118,7 +118,13 @@ def choose_action():
     for code, text in ACTION_TEXT.items():
         print(code, "-", text)
 
-    return int(input("\nВаш выбор: "))
+    action = safe_int("\nВаш выбор: ")
+
+    if action is None:
+        print("ход пропущен")
+        return 0
+
+    return action
 
 
 def calc_outcome(player_action, rival_style):

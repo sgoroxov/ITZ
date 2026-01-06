@@ -314,3 +314,20 @@ def check_force_exit():
     cmd = input("> ").strip()
 
     return cmd == "--"
+
+
+def safe_int(prompt):
+    """
+    безопасный ввод числового значения
+
+    returns:
+        int | None — число либо None при ошибке ввода
+    """
+
+    value = input(prompt).strip()
+
+    if not value.isdigit():
+        print("некорректный ввод — ожидалось число")
+        return None
+
+    return int(value)
